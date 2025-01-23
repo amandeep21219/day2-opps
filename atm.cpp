@@ -129,10 +129,10 @@ public:
     UserService() : atm(&cashMachine) {
         // Initialize the ATM with some cash
         map<int, int> initialCash = {
-            {2000, 10}, // ₹2000 x 10
-            {500, 10},  // ₹500 x 10
-            {200, 11},  // ₹200 x 11
-            {100, 20}   // ₹100 x 20
+            {2000, 10}, // 2000 x 10
+            {500, 10},  // 500 x 10
+            {200, 11},  // 200 x 11
+            {100, 20}   // 100 x 20
         };
         atm.addCashToMachine(initialCash);
     }
