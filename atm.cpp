@@ -1,78 +1,77 @@
 #include <iostream>
 #include <map>
-#include <vector>
 using namespace std;
 
-//  CashMachine Class
-class CashMachine {
+// Machine that manages cash storage and transactions
+class CashManager {
 private:
-    map<int, int, greater<int>> cashinventory; // Stores denominations in descending order using greater int comparator
+    map<int, int, greater<int>> cashInventory; // Keeps track of cash denominations in descending order
 
 public:
-    CashMachine() {
-        // Initialize available denominations 
-        cashinventory[2000] = 0;
-        cashinventory[500] = 0;
-        cashinventory[200] = 0;
-        cashinventory[100] = 0;
+    CashManager() {
+        // Initialize the cash inventory with supported denominations
+        cashInventory[2000] = 0;
+        cashInventory[500] = 0;
+        cashInventory[200] = 0;
+        cashInventory[100] = 0;
     }
 
-    // Add money to the ATM
-    void addMoney( map<int, int>& topUp) {
+    // Add cash to the ATM
+    void addCash(map<int, int>& topUp) {
         for (const auto& entry : topUp) {
-            int note = entry.first;
+            int denomination = entry.first;
             int count = entry.second;
 
-            if (cashinventory.find(note) != cashinventory.end()) {
-                cashinventory[note] += count;
+            if (cashInventory.find(denomination) != cashInventory.end()) {
+                cashInventory[denomination] += count;
             } else {
-                cout << "Invalid or banned denomination: " << note << endl;
+                cout << "Invalid denomination: " << denomination << ". Ignored.\n";
             }
         }
     }
 
-    // Display the total cash and denominations in the ATM
-    void displayAmount() const {
-        long totalAmount = 0;
-        cout << "Current ATM Inventory:\n";
-        for (auto entry : cashinventory) {
-            cout << "Denomination: " << entry.first 
-                 << ", Count: " << entry.second << endl;
-            totalAmount += entry.first * entry.second;
+    // Display the total cash and inventory
+    void displayCashInventory() const {
+        long totalCash = 0;
+        cout << "ATM Cash Inventory:\n";
+        for (const auto& entry : cashInventory) {
+            cout << "Denomination: ₹" << entry.first 
+                 << ", Count: " << entry.second << "\n";
+            totalCash += entry.first * entry.second;
         }
-        cout << "Total Cash in ATM: ₹" << totalAmount << endl;
+        cout << "Total Cash in ATM: ₹" << totalCash << "\n";
     }
 
-    // Withdraw cash from the ATM
-    bool getCash(int amount, map<int, int>& dispensedNotes) {
+    // Withdraw the specified amount, returning notes in dispensedNotes
+    bool withdrawCash(int amount, map<int, int>& dispensedNotes) {
         if (amount <= 0) {
             cout << "Invalid amount. Please enter a positive value.\n";
             return false;
         }
 
-        if (!isMultipleAvailable(amount)) {
-            cout << "The amount is not a multiple of available denominations.\n";
+        if (!isMultipleOfDenominations(amount)) {
+            cout << "The requested amount cannot be dispensed due to unavailable denominations.\n";
             return false;
         }
 
         dispensedNotes.clear();
         int remainingAmount = amount;
 
-        for (auto entry : cashinventory) {
-            int note = entry.first;
+        for (auto& entry : cashInventory) {
+            int denomination = entry.first;
             int availableNotes = entry.second;
-            int requiredNotes = remainingAmount / note;
+            int requiredNotes = remainingAmount / denomination;
 
             if (requiredNotes > 0 && availableNotes > 0) {
                 int notesToDispense = min(requiredNotes, availableNotes);
-                dispensedNotes[note] = notesToDispense;
-                remainingAmount -= notesToDispense * note;
-                cashInventory[note] -= notesToDispense;
+                dispensedNotes[denomination] = notesToDispense;
+                remainingAmount -= notesToDispense * denomination;
+                cashInventory[denomination] -= notesToDispense;
             }
         }
 
         if (remainingAmount > 0) {
-            cout << "Insufficient balance in the ATM.\n";
+            cout << "ATM does not have sufficient cash for this transaction.\n";
             return false;
         }
 
@@ -80,9 +79,9 @@ public:
     }
 
 private:
-    // Check if the amount is a multiple of available denominations
-    bool isMultipleAvailable(int amount) const {
-        for ( auto& entry : cashInventory) {
+    // Check if the amount can be formed using available denominations
+    bool isMultipleOfDenominations(int amount) const {
+        for (const auto& entry : cashInventory) {
             if (amount % entry.first == 0) {
                 return true;
             }
@@ -91,62 +90,62 @@ private:
     }
 };
 
-//  ATM Class
+// A user-facing interface for interacting with the ATM
 class ATM {
 private:
-    CashMachine* cashMachine;
+    CashManager* cashManager;
 
 public:
-    ATM(CashMachine* machine) : cashMachine(machine) {}
+    ATM(CashManager* manager) : cashManager(manager) {}
 
-    
-
-    void withdrawAmount(int amount) {
-        map<int, int> withdrawnNotes;
-        if (cashMachine->getCash(amount, withdrawnNotes)) {
-            cout << "Transaction Successful. Dispensed Notes:\n";
-            for (const auto& entry : withdrawnNotes) {
-                cout << "Denomination: " << entry.first 
-                     << ", Count: " << entry.second << endl;
+    // Withdraw money from the ATM
+    void withdrawMoney(int amount) {
+        map<int, int> dispensedNotes;
+        if (cashManager->withdrawCash(amount, dispensedNotes)) {
+            cout << "Transaction Successful! Dispensed Notes:\n";
+            for (const auto& entry : dispensedNotes) {
+                cout << "Denomination: ₹" << entry.first 
+                     << ", Count: " << entry.second << "\n";
             }
         } else {
-            cout << "Transaction Failed. Please check the error message above.\n";
+            cout << "Transaction Failed. Please check the error above.\n";
         }
     }
 
-    void displayAmount() const {
-        cashMachine->displayAmount();
+    // Display the ATM's current inventory
+    void showCashInventory() const {
+        cashManager->displayCashInventory();
     }
 };
 
-// UserService Class
+// A service to initialize and manage ATM operations
 class UserService {
 private:
-    CashMachine cashMachine;
+    CashManager cashManager;
     ATM atm;
 
 public:
-    UserService() : atm(&cashMachine) {
-        // Initialize the ATM with some cash
+    UserService() : atm(&cashManager) {
+        // Preload ATM with some cash
         map<int, int> initialCash = {
             {2000, 10}, // 2000 x 10
             {500, 10},  // 500 x 10
-            {200, 11},  // 200 x 11
+            {200, 10},  // 200 x 10
             {100, 20}   // 100 x 20
         };
-        atm.addCashToMachine(initialCash);
+        cashManager.addCash(initialCash);
     }
 
-    void withdrawMoney(int amount) {
-        atm.withdrawAmount(amount);
+    void withdrawFromATM(int amount) {
+        atm.withdrawMoney(amount);
     }
 
-    void showATMInventory()  {
-        atm.displayAmount();
+    void displayATMInventory() {
+        atm.showCashInventory();
     }
 };
 
-//  Main Function
+// Main function to drive the ATM application
 int main() {
     UserService userService;
     int choice;
@@ -160,21 +159,21 @@ int main() {
         cin >> choice;
 
         switch (choice) {
-        case 1: {
-            int amount;
-            cout << "Enter the amount to withdraw: ";
-            cin >> amount;
-            userService.withdrawMoney(amount);
-            break;
-        }
-        case 2:
-            userService.showATMInventory();
-            break;
-        case 3:
-            cout << "Exiting. Thank you for using the ATM!\n";
-            break;
-        default:
-            cout << "Invalid choice. Please try again.\n";
+            case 1: {
+                int amount;
+                cout << "Enter the amount to withdraw: ";
+                cin >> amount;
+                userService.withdrawFromATM(amount);
+                break;
+            }
+            case 2:
+                userService.displayATMInventory();
+                break;
+            case 3:
+                cout << "Thank you for using the ATM. Goodbye!\n";
+                break;
+            default:
+                cout << "Invalid choice. Please try again.\n";
         }
     } while (choice != 3);
 
